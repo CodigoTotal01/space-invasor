@@ -1,4 +1,5 @@
 import pygame, random, math
+from pygame import mixer
 
 # inicializar pygame
 pygame.init()
@@ -11,6 +12,11 @@ pygame.display.set_caption("Space Invasor")
 icono = pygame.image.load('shaders/nave-espacial-tittle.png')
 pygame.display.set_icon(icono)
 fondo = pygame.image.load('shaders\space.png')
+
+# Agregar musica
+mixer.music.load('sounds\MusicaFondo.mp3')
+mixer.music.set_volume(0.3)
+mixer.music.play(-1)
 
 # Jugador
 img_jugador = pygame.image.load('shaders\\transbordador-espacial.png')
@@ -29,9 +35,25 @@ bala_y_cambio = 1
 
 bala_visible = False
 
-
-#Puntaje
+# Puntaje
 puntaje = 0
+fuente = pygame.font.Font('freesansbold.ttf', 32)
+texto_x = 10
+texto_y = 10
+
+# Texto final de juego
+fuente_final = pygame.font.Font('freesansbold.ttf', 32)
+
+
+def texto_final():
+    mi_fuente_final = fuente_final.render("JUEGO TERMINADO", True, (255, 255, 255))
+    pantalla.blit(mi_fuente_final, (100, 200))
+
+
+def mostrar_puntaje(x, y):
+    texto = fuente.render(f"Puntaje : {puntaje}", True, (255, 255, 255))
+    pantalla.blit(texto, (x, y))
+
 
 # Alien
 img_enemigo = []
@@ -42,20 +64,20 @@ enemigo_x_cambio = []
 enemigo_y_cambio = []
 cantidad_enemigos = 8
 
-
 for e in range(cantidad_enemigos):
     img_enemigo.append(pygame.image.load('shaders\\ufo.png'))
     enemigo_x.append(random.randint(0, 736))
-    enemigo_y.append( random.randint(50, 200))
+    enemigo_y.append(random.randint(50, 200))
     enemigo_x_cambio.append(0.1)
     enemigo_y_cambio.append(50)
+
 
 def jugador(x, y):
     # blit - arrojar
     pantalla.blit(img_jugador, (x, y))
 
 
-def enemigo(x, y ,ene):
+def enemigo(x, y, ene):
     pantalla.blit(img_enemigo[ene], (x, y))
 
 
@@ -70,6 +92,7 @@ def hay_colision(x_1, y_1, x_2, y_2):
     if distancia < 27:
         return True
     return False
+
 
 # todo lo que ocurra en la ventana de pygame y otras interacciones de juego son "Eventos"
 se_ejecuta = True
@@ -90,9 +113,11 @@ while se_ejecuta:
             if evento.key == pygame.K_RIGHT:
                 jugador_x_cambio = 0.3
             if evento.key == pygame.K_SPACE:
+                sonido_bala = mixer.Sound('sounds\disparo.mp3')
                 if not bala_visible:
                     bala_x = jugador_x
                     disparar_bala(bala_x, bala_y)
+                    sonido_bala.play()
         # evento soltar flechas
         if evento.type == pygame.KEYUP:
             if evento.key == pygame.K_LEFT or evento.key == pygame.K_RIGHT:
@@ -109,6 +134,14 @@ while se_ejecuta:
 
     # modificar ubicacion
     for e in range(cantidad_enemigos):
+
+        # End of the game
+        if enemigo_y[e] > 500:
+            for k in range(cantidad_enemigos):
+                # desaparecemos los aliens
+                enemigo_y[k] = 1000
+            texto_final()
+            break
         enemigo_x[e] += enemigo_x_cambio[e]
 
         # mantener nave dentor de los bordes
@@ -122,13 +155,15 @@ while se_ejecuta:
             # Colision
         colision = hay_colision(enemigo_x[e], enemigo_y[e], bala_x, bala_y)
         if colision:
+            sonido_colision = mixer.Sound('sounds\Golpe.mp3')
+            sonido_colision.play()
             bala_y = 500
             bala_visible = False
             puntaje += 1
-            print(puntaje)
+
             enemigo_x[e] = random.randint(0, 736)
             enemigo_y[e] = random.randint(50, 200)
-        enemigo(enemigo_x[e] , enemigo_y[e], e)
+        enemigo(enemigo_x[e], enemigo_y[e], e)
         # movimiento bala
     if bala_y <= -64:
         bala_y = 500
@@ -137,10 +172,7 @@ while se_ejecuta:
         disparar_bala(bala_x, bala_y)
         bala_y -= bala_y_cambio
 
-
-
-
     jugador(jugador_x, jugador_y)
-
+    mostrar_puntaje(texto_x, texto_y)
     # Actualizar la pantalla
     pygame.display.update()
